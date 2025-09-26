@@ -10,3 +10,6 @@ scenarios:
       - think: 2
       - get:
           url: "/contact"
+      - think: 2
+      - get:
+          url: "/contact"

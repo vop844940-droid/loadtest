@@ -1,0 +1,60 @@
+name: Artillery Load Test
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  loadtest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Artillery
+        run: npm i -g artillery@latest
+
+      - name: Run Artillery test
+        run: artillery run artillery.yml -o result.json
+
+      - name: Print concise summary
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'result.json';
+          const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+          // Artillery JSON can have different shapes depending on version.
+          const agg = data.aggregate || data.metrics || data.report || data;
+          const codes = agg.codes || (agg.counters && Object.fromEntries(Object.entries(agg.counters).filter(([k]) => k.startsWith('http.codes.')).map(([k, v]) => [k.replace('http.codes.', ''), v]))) || {};
+          const totalReqFromCodes = Object.values(codes).reduce((a, b) => a + b, 0);
+          const totalRequests = agg.requestsCompleted || (agg.counters && (agg.counters['http.requests'] || agg.counters['requestsCompleted'])) || totalReqFromCodes || 0;
+          const success2xx = Object.entries(codes).filter(([k]) => /^2\\d\\d$/.test(k)).reduce((sum, [, v]) => sum + v, 0);
+          const errorCounters = agg.errors || (agg.counters && Object.fromEntries(Object.entries(agg.counters).filter(([k]) => k.startsWith('errors.')).map(([k, v]) => [k.replace(/^errors\\./, ''), v]))) || {};
+          const errorCount = Object.values(errorCounters).reduce((a, b) => a + b, 0);
+          const latency = agg.latency || (agg.summaries && (agg.summaries['http.response_time'] || agg.summaries['latency'])) || {};
+          const out = {
+            totalRequests,
+            successful2xx: success2xx,
+            errors: errorCount,
+            latency: {
+              min: latency.min ?? null,
+              median: latency.median ?? latency.p50 ?? null,
+              p95: latency.p95 ?? null,
+              max: latency.max ?? null,
+            },
+            codes
+          };
+          console.log(JSON.stringify(out, null, 2));
+          NODE
+
+      - name: Upload raw results
+        uses: actions/upload-artifact@v4
+        with:
+          name: artillery-results
+          path: |
+            result.json
