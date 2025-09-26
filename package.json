@@ -1,0 +1,8 @@
+{
+  "name": "giftzy-loadtest",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npx --yes artillery@latest run artillery.yml"
+  }
+}
