@@ -1,0 +1,15 @@
+config:
+  target: "https://giftzy.click"
+  phases:
+    - duration: 30
+      arrivalCount: 100
+scenarios:
+  - flow:
+      - get:
+          url: "/"
+      - think: 2
+      - get:
+          url: "/contact"
+      - think: 2
+      - get:
+          url: "/contact"
