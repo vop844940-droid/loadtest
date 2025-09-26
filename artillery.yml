@@ -1,17 +1,12 @@
 config:
   target: "https://giftzy.click"
   phases:
-    - duration: 1
+    - duration: 30
       arrivalCount: 100
-      name: "100 users visit once"
-  http:
-    timeout: 30
-  defaults:
-    headers:
-      User-Agent: "artillery-ci-task"
-
 scenarios:
-  - name: "Visit home page once"
-    flow:
+  - flow:
       - get:
           url: "/"
+      - think: 2
+      - get:
+          url: "/contact"
